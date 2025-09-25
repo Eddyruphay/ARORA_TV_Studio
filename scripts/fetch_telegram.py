@@ -20,8 +20,12 @@ def main():
         print("Erro: As variáveis de ambiente API_ID e API_HASH não foram definidas.")
         return
 
+    # Forçamos o arquivo de sessão a ser salvo no diretório /tmp para evitar problemas de permissão
+    session_path = f"/tmp/{session_name}.session"
+    print(f"Usando o caminho da sessão: {session_path}")
+
     # Usamos um bloco with para garantir que o cliente se desconecte corretamente
-    with TelegramClient(session_name, api_id, api_hash) as client:
+    with TelegramClient(session_path, api_id, api_hash) as client:
         print(f"Conectado ao Telegram como {session_name}")
         
         all_links = []
