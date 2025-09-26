@@ -8,6 +8,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check for secrets
+        run: |
+          if [ -z "${{ secrets.API_ID }}" ]; then
+            echo "Warning: API_ID secret is not set."
+          fi
+          if [ -z "${{ secrets.API_HASH }}" ]; then
+            echo "Warning: API_HASH secret is not set."
+          fi
+          if [ -z "${{ secrets.SESSION_ENCRYPTION_KEY }}" ]; then
+            echo "Warning: SESSION_ENCRYPTION_KEY secret is not set."
+          fi
+          if [ -z "${{ secrets.TELEGRAM_SESSION_ENC }}" ]; then
+            echo "Warning: TELEGRAM_SESSION_ENC secret is not set."
+          fi
+
       - name: Check out repository
         uses: actions/checkout@v4
 
