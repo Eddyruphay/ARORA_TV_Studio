@@ -1,13 +1,28 @@
 name: Test Fetch Script
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
   test-run:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check for secrets
+        run: |
+          if [ -z "${{ secrets.API_ID }}" ]; then
+            echo "Warning: API_ID secret is not set."
+          fi
+          if [ -z "${{ secrets.API_HASH }}" ]; then
+            echo "Warning: API_HASH secret is not set."
+          fi
+          if [ -z "${{ secrets.SESSION_ENCRYPTION_KEY }}" ]; then
+            echo "Warning: SESSION_ENCRYPTION_KEY secret is not set."
+          fi
+          if [ -z "${{ secrets.TELEGRAM_SESSION_ENC }}" ]; then
+            echo "Warning: TELEGRAM_SESSION_ENC secret is not set."
+          fi
+
       - name: Check out repository
         uses: actions/checkout@v4
 
@@ -26,9 +41,5 @@ jobs:
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
           SESSION_ENCRYPTION_KEY: ${{ secrets.SESSION_ENCRYPTION_KEY }}
-          TELEGRAM_SESSION_ENC: "dummy_value"
-        run: python scripts/fetch_telegram.py > script_output.log 2>&1
-
-      - name: Show the logs
-        if: always()
-        run: cat script_output.log
+          TELEGRAM_SESSION_ENC: ${{ secrets.TELEGRAM_SESSION_ENC }}
+        run: python scripts/fetch_telegram.py

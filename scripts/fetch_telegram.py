@@ -2,6 +2,7 @@
 import os
 import json
 import asyncio
+import base64
 from telethon.sync import TelegramClient
 from telethon.tl.types import DocumentAttributeVideo
 from session_manager import decrypt_session
@@ -59,9 +60,16 @@ async def main():
         return
         
     # --- Descriptografar a Sessão ---
+    print("Decodificando a sessão de Base64...")
+    try:
+        encrypted_session_decoded = base64.b64decode(encrypted_session)
+    except Exception as e:
+        print(f"Erro ao decodificar a sessão de Base64: {e}")
+        return
+
     print(f"Descriptografando a sessão para o arquivo: {SESSION_FILE}")
     try:
-        decrypt_session(encrypted_session, SESSION_FILE)
+        decrypt_session(encrypted_session_decoded, SESSION_FILE)
     except Exception as e:
         print(f"Erro ao descriptografar a sessão: {e}")
         return

@@ -9,7 +9,7 @@ def get_fernet_key():
 
 def decrypt_session(encrypted_session_content, output_path):
     f = get_fernet_key()
-    decrypted_content = f.decrypt(encrypted_session_content.encode()).decode()
+    decrypted_content = f.decrypt(encrypted_session_content).decode()
     with open(output_path, 'w') as file:
         file.write(decrypted_content)
     print(f"Session decrypted to {output_path}")
