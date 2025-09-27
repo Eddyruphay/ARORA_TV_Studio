@@ -27,4 +27,10 @@ jobs:
           API_HASH: ${{ secrets.API_HASH }}
           SESSION_ENCRYPTION_KEY: ${{ secrets.SESSION_ENCRYPTION_KEY }}
           TELEGRAM_SESSION_ENC: ${{ secrets.TELEGRAM_SESSION_ENC }}
-        run: python scripts/fetch_telegram.py
+        run: python scripts/fetch_telegram.py > script_output.log 2>&1
+
+      - name: Upload script output
+        uses: actions/upload-artifact@v3
+        with:
+          name: script-output
+          path: script_output.log
