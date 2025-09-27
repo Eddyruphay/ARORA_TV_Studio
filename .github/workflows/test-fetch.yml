@@ -26,9 +26,6 @@ jobs:
           API_ID: ${{ secrets.API_ID }}
         run: python scripts/fetch_telegram.py > script_output.log 2>&1
 
-      - name: Upload script output
+      - name: Show the logs
         if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: script-output
-          path: script_output.log
+        run: cat script_output.log
