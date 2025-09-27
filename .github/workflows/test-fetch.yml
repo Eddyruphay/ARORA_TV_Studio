@@ -30,6 +30,7 @@ jobs:
         run: python scripts/fetch_telegram.py > script_output.log 2>&1
 
       - name: Upload script output
+        if: always()
         uses: actions/upload-artifact@v3
         with:
           name: script-output
