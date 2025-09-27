@@ -22,9 +22,4 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run the fetch script
-        env:
-          API_ID: ${{ secrets.API_ID }}
-          API_HASH: ${{ secrets.API_HASH }}
-          SESSION_ENCRYPTION_KEY: ${{ secrets.SESSION_ENCRYPTION_KEY }}
-          TELEGRAM_SESSION_ENC: ${{ secrets.TELEGRAM_SESSION_ENC }}
         run: python scripts/fetch_telegram.py
