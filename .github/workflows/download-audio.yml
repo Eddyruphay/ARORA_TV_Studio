@@ -1,0 +1,22 @@
+name: Download YouTube Audio
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download-audio:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install yt-dlp
+        run: |
+          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
+
+      - name: Download audio
+        run: yt-dlp -x --audio-format mp3 "https://www.youtube.com/live/5CpDj8VHA7o?si=Niim38Ff1Wx6q6Gp" -o "downloaded_audio.%(ext)s"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: audio-file
+          path: downloaded_audio.mp3
