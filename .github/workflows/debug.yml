@@ -12,3 +12,8 @@ jobs:
 
       - name: List files
         run: ls -laR
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
