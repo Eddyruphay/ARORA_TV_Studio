@@ -27,8 +27,7 @@ jobs:
         env:
           API_ID: ${{ secrets.API_ID }}
           API_HASH: ${{ secrets.API_HASH }}
-          TELEGRAM_SESSION_ENC: ${{ secrets.TELEGRAM_SESSION_ENC }}
-          SESSION_ENCRYPTION_KEY: ${{ secrets.SESSION_ENCRYPTION_KEY }}
+          TELETHON_STRING_SESSION: ${{ secrets.TELETHON_STRING_SESSION }}
         run: python scripts/fetch_telegram.py
 
       - name: Commit and push if data changed
