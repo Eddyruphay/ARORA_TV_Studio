@@ -2,8 +2,6 @@ name: Jarvis Content Fetch
 
 on:
   workflow_dispatch: # Permite acionamento manual
-  schedule:
-    - cron: '0 * * * *' # Aciona a cada hora
 
 jobs:
   fetch-and-commit:
