@@ -1,15 +1,14 @@
-
 import os
 import json
 import asyncio
-import base64
 from telethon.sync import TelegramClient
+from telethon.sessions import StringSession
 from telethon.tl.types import DocumentAttributeVideo
-from session_manager import decrypt_session
 
 # --- Configuração ---
 API_ID = os.environ.get('API_ID')
 API_HASH = os.environ.get('API_HASH')
+STRING_SESSION = os.environ.get('TELETHON_STRING_SESSION')
 SESSION_NAME = "arora_tv_bot"
 SESSION_FILE = f"{SESSION_NAME}.session"
 
@@ -51,29 +50,6 @@ async def main():
         print("Erro: As variáveis de ambiente API_ID e API_HASH não foram definidas.")
         return
 
-    encrypted_session = os.environ.get('TELEGRAM_SESSION_ENC')
-    encryption_key = os.environ.get('SESSION_ENCRYPTION_KEY')
-
-    if not all([encrypted_session, encryption_key]):
-        print("Erro: As variáveis de ambiente da sessão criptografada não foram definidas.")
-        print("É necessário definir TELEGRAM_SESSION_ENC e SESSION_ENCRYPTION_KEY.")
-        return
-        
-    # --- Descriptografar a Sessão ---
-    print("Decodificando a sessão de Base64...")
-    try:
-        encrypted_session_decoded = base64.b64decode(encrypted_session)
-    except Exception as e:
-        print(f"Erro ao decodificar a sessão de Base64: {e}")
-        return
-
-    print(f"Descriptografando a sessão para o arquivo: {SESSION_FILE}")
-    try:
-        decrypt_session(encrypted_session_decoded, SESSION_FILE)
-    except Exception as e:
-        print(f"Erro ao descriptografar a sessão: {e}")
-        return
-
     # --- Carregar Configurações ---
     print(f"Carregando configurações de {SETTINGS_FILE}")
     settings = load_json(SETTINGS_FILE, {"source_channels": []})
@@ -86,9 +62,20 @@ async def main():
     all_new_links = load_json(LINKS_FILE, [])
 
     # --- Conectar e Processar ---
-    async with TelegramClient(SESSION_FILE, API_ID, API_HASH) as client:
+    # Usa a String Session se disponível, senão, volta para o arquivo de sessão.
+    session = StringSession(STRING_SESSION) if STRING_SESSION else SESSION_FILE
+    client = TelegramClient(session, API_ID, API_HASH)
+    try:
+        await client.connect()
+        if not await client.is_user_authorized():
+            print(f"Erro: A sessão em '{SESSION_FILE}' não está autorizada. Por favor, gere uma nova sessão usando 'generate_session.py'.")
+            return
         print("Cliente Telegram conectado com sucesso.")
-        
+    except Exception as e:
+        print(f"Erro ao conectar ao Telegram ou autorizar sessão: {e}")
+        return
+
+    async with client: # Use o cliente já conectado
         for channel in source_channels:
             channel_last_id = last_ids.get(channel, 0)
             print(f"Buscando no canal '{channel}' a partir do ID: {channel_last_id}")
@@ -102,7 +89,7 @@ async def main():
                         
                         # 1. Republicar no nosso canal-cofre
                         forwarded_message = await client.forward_messages(
-                            to_entity=ARORA_OCI_VAULT_ID,
+                            ARORA_OCI_VAULT_ID,
                             messages=message
                         )
                         print(f"    - Republicado no cofre com novo ID: {forwarded_message.id}")
@@ -140,9 +127,10 @@ async def main():
     save_json(LAST_IDS_FILE, last_ids)
     
     # --- Limpeza ---
-    if os.path.exists(SESSION_FILE):
-        os.remove(SESSION_FILE)
-        print(f"Arquivo de sessão local {SESSION_FILE} removido.")
+    # Não remove o arquivo de sessão aqui, pois o usuário quer testar sua validade.
+    # if os.path.exists(SESSION_FILE):
+    #     os.remove(SESSION_FILE)
+    #     print(f"Arquivo de sessão local {SESSION_FILE} removido.")
 
     print("--- Script de busca ARORA TV finalizado ---")
 
