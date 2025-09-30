@@ -87,23 +87,37 @@ async def main():
                     if message.video:
                         print(f"  - Vídeo encontrado: ID {message.id}")
                         
-                        # 1. Republicar no nosso canal-cofre
-                        forwarded_message = await client.forward_messages(
-                            ARORA_OCI_VAULT_ID,
-                            messages=message
-                        )
-                        print(f"    - Republicado no cofre com novo ID: {forwarded_message.id}")
+                        # 1. Definir um caminho para o download
+                        download_dir = "temp_downloads"
+                        os.makedirs(download_dir, exist_ok=True)
+                        # Usar o ID da mensagem original para um nome de arquivo único
+                        file_path = os.path.join(download_dir, f"{message.id}.mp4")
 
-                        # 2. Extrair metadados da nova mensagem
-                        duration = get_video_duration(forwarded_message)
+                        print(f"    - Baixando vídeo para {file_path}...")
                         
-                        link_data = {
-                            "source_channel": channel,
-                            "vault_message_id": forwarded_message.id,
-                            "duration_seconds": duration,
-                            "processed_at": forwarded_message.date.isoformat()
-                        }
-                        new_messages_in_channel.append(link_data)
+                        # 2. Fazer o download do vídeo
+                        downloaded_file_path = await client.download_media(
+                            message.media,
+                            file=file_path
+                        )
+
+                        if downloaded_file_path:
+                            print(f"    - Download concluído: {downloaded_file_path}")
+                            
+                            # 3. Extrair metadados da mensagem ORIGINAL
+                            duration = get_video_duration(message)
+                            
+                            # 4. Salvar metadados, incluindo o caminho do arquivo local
+                            link_data = {
+                                "source_channel": channel,
+                                "original_message_id": message.id,
+                                "local_path": downloaded_file_path,
+                                "duration_seconds": duration,
+                                "processed_at": message.date.isoformat()
+                            }
+                            new_messages_in_channel.append(link_data)
+                        else:
+                            print(f"    - Falha no download do vídeo ID {message.id}.")
                     
                     # Atualiza o último ID processado para este canal
                     last_ids[channel] = message.id

@@ -1,2 +1,17 @@
+# Session files
 arora_tv_bot.session
 arora_tv_bot.session.enc
+*.session
+*.session-journal
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Temporary download directory
+temp_downloads/
+
+# Secrets
+encryption.key
+set_env.sh
+
