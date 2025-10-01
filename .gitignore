@@ -14,4 +14,8 @@ temp_downloads/
 # Secrets
 encryption.key
 set_env.sh
+.secrets
 
+# Developer scripts
+download_video.py
+scripts/generate_session.py
