@@ -29,6 +29,9 @@ async function capturar() {
 
   const page = await browser.newPage();
 
+  // Injeta o cookie de idioma antes de qualquer outra coisa.
+  await page.setCookie({ name: 'stel_ln', value: 'pt-br', domain: 'web.telegram.org' });
+
   // --- MELHORIA DE LOG: Captura logs do console do navegador ---
   page.on('console', msg => {
     console.log('[LOG DO NAVEGADOR]:', msg.text());
