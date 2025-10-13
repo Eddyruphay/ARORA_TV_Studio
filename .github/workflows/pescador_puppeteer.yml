@@ -42,7 +42,7 @@ jobs:
           git status
           
           # Adiciona o catálogo e o arquivo de links brutos (para depuração)
-          git add data/content_catalog.json data/raw_links.json
+          git add pescadores/data/content_catalog.json pescadores/data/raw_links.json
           
           echo "--- Git Status Depois do Add ---"
           git status
