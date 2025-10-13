@@ -27,9 +27,9 @@ jobs:
           TELEGRAM_SESSION_JSON: ${{ secrets.TELEGRAM_SESSION_JSON }}
         run: node captura.js
 
-      - name: 🗂️ Executar Processador e Catalogador
-        working-directory: ./pescadores
-        run: node processador.js
+      # - name: 🗂️ Executar Processador e Catalogador
+      #   working-directory: ./pescadores
+      #   run: node processador.js
 
       - name: 🚀 Fazer commit do Catálogo de Conteúdo
         env:
