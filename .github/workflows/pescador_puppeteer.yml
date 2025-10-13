@@ -41,8 +41,8 @@ jobs:
           echo "--- Git Status Antes do Add ---"
           git status
           
-          # Adiciona o arquivo de links brutos e o screenshot (para depuração)
-          git add pescadores/data/raw_links.json pescadores/debug_screenshot.png
+          # Adiciona os arquivos de resultado e depuração
+          git add pescadores/data/raw_links.json pescadores/debug_screenshot.png pescadores/debug_page.html
           
           echo "--- Git Status Depois do Add ---"
           git status
