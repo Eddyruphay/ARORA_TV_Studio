@@ -1,0 +1,14 @@
+[
+  {
+    "channel_name": "Canal Exemplo 1",
+    "videos": [
+      "http://exemplo.com/video1.mp4"
+    ]
+  },
+  {
+    "channel_name": "Canal Exemplo 2",
+    "videos": [
+      "http://exemplo.com/video2.mp4"
+    ]
+  }
+]
