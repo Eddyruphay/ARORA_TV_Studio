@@ -1,0 +1,63 @@
+name: Pescador Puppeteer - Coleta de Conteúdo
+
+on:
+  workflow_dispatch: # Permite acionamento manual
+
+jobs:
+  collect-and-process:
+    permissions:
+      contents: write # Permissão necessária para fazer commit no repositório
+    runs-on: ubuntu-latest
+    steps:
+      - name: ✅ Checkout do Repositório
+        uses: actions/checkout@v4
+
+      - name: 🟢 Configurar Ambiente Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # Usando uma versão LTS estável
+          cache: 'npm'
+          cache-dependency-path: 'pescadores/package-lock.json'
+
+      - name: 📦 Instalar Dependências
+        working-directory: ./pescadores
+        run: npm install
+
+      - name: 🎣 Executar Captura (Puppeteer)
+        working-directory: ./pescadores
+        env:
+          TELEGRAM_SESSION_JSON: ${{ secrets.TELEGRAM_SESSION_JSON }}
+        run: node captura.js
+
+      - name: 🗂️ Executar Processador e Catalogador
+        working-directory: ./pescadores
+        run: node processador.js
+
+      - name: 🚀 Fazer commit do Catálogo de Conteúdo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name 'ARORA Pescador IA'
+          git config --global user.email 'bot@arora.tv'
+          
+          echo "--- Git Status Antes do Add ---"
+          git status
+          
+          # Adiciona o catálogo e o arquivo de links brutos (para depuração)
+          git add data/content_catalog.json data/raw_links.json
+          
+          echo "--- Git Status Depois do Add ---"
+          git status
+          
+          echo "--- Git Diff Staged ---"
+          git diff --staged
+          
+          # Apenas comita se houver mudanças no repositório
+          if ! git diff --staged --quiet; then
+            git commit -m "📚 Catálogo: Novo conteúdo capturado pelo Pescador Puppeteer"
+            echo "--- Realizando Push... ---"
+            # Usa github.ref_name para pegar o nome da branch dinamicamente (ex: main ou master)
+            git push https://oauth2:$GITHUB_TOKEN@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
+          else
+            echo "Nenhuma mudança no catálogo para commitar."
+          fi
