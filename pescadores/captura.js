@@ -67,6 +67,9 @@ async function capturar() {
     { channel_name: 'Canal Exemplo 2', videos: ['http://exemplo.com/video2.mp4'] }
   ];
 
+  // Garante que o diretório de dados exista antes de salvar o arquivo.
+  await fs.mkdir('./data', { recursive: true });
+
   // Salva os links extraídos em um arquivo temporário.
   await fs.writeFile('./data/raw_links.json', JSON.stringify(linksExtraidos, null, 2));
   console.log('📝 Links brutos salvos em data/raw_links.json');
