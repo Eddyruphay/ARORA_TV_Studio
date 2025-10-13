@@ -34,15 +34,11 @@ async function capturar() {
   // Injeta os dados da sessão no localStorage ANTES de navegar para a página.
   // Isso faz com que o Telegram Web já carregue logado.
   await page.evaluateOnNewDocument(session => {
-    // O 'session' aqui é o objeto que passamos como segundo argumento.
-    // O localStorage só aceita strings, então pegamos o valor de 'account1'.
-    const accountData = JSON.parse(session.account1);
-    for (const key in accountData) {
-      localStorage.setItem(key, accountData[key]);
+    // Itera sobre o objeto de sessão e define cada chave/valor no localStorage.
+    // Esta abordagem é mais simples e direta.
+    for (const key in session) {
+      localStorage.setItem(key, session[key]);
     }
-    // Adiciona também as outras chaves que estavam no JSON original.
-    localStorage.setItem('tt-multitab_1', session['tt-multitab_1']);
-    localStorage.setItem('user_auth', session.user_auth);
   }, sessionData);
 
 
