@@ -23,14 +23,18 @@ async function capturar() {
   console.log('🔑 Dados da sessão carregados da variável de ambiente.');
 
   const browser = await puppeteer.launch({
-    headless: true, // Rodar em modo "headless" (sem interface gráfica) no GitHub Actions.
+    headless: true,
     args: [
-      '--no-sandbox', // Necessário para rodar em ambientes de container como o do GitHub.
+      '--no-sandbox',
       '--disable-setuid-sandbox'
     ]
   });
 
   const page = await browser.newPage();
+
+  // Emula um dispositivo móvel para a versão /a/ do Telegram Web
+  await page.setUserAgent('Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Mobile Safari/537.36');
+  await page.setViewport({ width: 360, height: 640, isMobile: true, hasTouch: true });
 
   // Injeta o cookie de idioma antes de qualquer outra coisa.
   await page.setCookie({ name: 'stel_ln', value: 'pt-br', domain: 'web.telegram.org' });
@@ -60,7 +64,7 @@ async function capturar() {
 
 
   console.log('🔗 Navegando para o Telegram Web...');
-  await page.goto('https://web.telegram.org/k/', {
+  await page.goto('https://web.telegram.org/a/', {
     waitUntil: 'networkidle2' // Espera a rede ficar ociosa.
   });
 
