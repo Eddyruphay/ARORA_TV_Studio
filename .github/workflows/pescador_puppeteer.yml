@@ -42,7 +42,7 @@ jobs:
           git status
           
           # Adiciona os arquivos de resultado e depuração
-          git add pescadores/data/raw_links.json pescadores/debug_screenshot.png pescadores/debug_page.html
+          git add pescadores/data/raw_links.json pescadores/debug_screenshot.png pescadores/debug_page.html pescadores/debug_sessionStorage.json pescadores/debug_cookies.json pescadores/debug_page.html
           
           echo "--- Git Status Depois do Add ---"
           git status

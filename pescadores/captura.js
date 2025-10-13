@@ -34,7 +34,15 @@ async function capturar() {
 
   // --- MELHORIA DE LOG: Captura logs do console do navegador ---
   page.on('console', msg => {
-    console.log('[LOG DO NAVEGADOR]:', msg.text());
+    console.log('[LOG DO NAVEGADOR - CONSOLE]:', msg.text());
+  });
+  // --- MELHORIA DE LOG: Captura erros de página ---
+  page.on('pageerror', error => {
+    console.error('[LOG DO NAVEGADOR - ERRO DE PÁGINA]:', error.message);
+  });
+  // --- MELHORIA DE LOG: Captura requisições de rede falhas ---
+  page.on('requestfailed', request => {
+    console.error('[LOG DO NAVEGADOR - REQUISIÇÃO FALHA]:', request.url(), request.failure().errorText);
   });
   // ----------------------------------------------------------
 
@@ -66,6 +74,15 @@ async function capturar() {
   const pageContent = await page.content();
   await fs.writeFile('./debug_page.html', pageContent);
   console.log('📄 HTML da página de depuração salvo em debug_page.html');
+
+  // --- MELHORIA DE LOG: Captura sessionStorage e cookies ---
+  const sessionStorageData = await page.evaluate(() => JSON.stringify(sessionStorage));
+  await fs.writeFile('./debug_sessionStorage.json', sessionStorageData);
+  console.log('📄 sessionStorage salvo em debug_sessionStorage.json');
+
+  const allCookies = await page.cookies();
+  await fs.writeFile('./debug_cookies.json', JSON.stringify(allCookies, null, 2));
+  console.log('📄 Cookies salvos em debug_cookies.json');
   // ------------------------------------------------
 
   // A lógica de scraping para extrair os links virá aqui.
