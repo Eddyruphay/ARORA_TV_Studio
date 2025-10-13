@@ -65,6 +65,13 @@ async function capturar() {
   console.log('📄 HTML da página de depuração salvo em debug_page.html');
   // ------------------------------------------------
 
+  // A lógica de scraping para extrair os links virá aqui.
+  // Por enquanto, vamos simular a extração.
+  const linksExtraidos = [
+    { channel_name: 'Canal Exemplo 1', videos: ['http://exemplo.com/video1.mp4'] },
+    { channel_name: 'Canal Exemplo 2', videos: ['http://exemplo.com/video2.mp4'] }
+  ];
+
   // Garante que o diretório de dados exista antes de salvar o arquivo.
   await fs.mkdir('./data', { recursive: true });
 
