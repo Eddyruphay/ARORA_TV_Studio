@@ -1,0 +1,16 @@
+[
+  {
+    "name": "stel_ln",
+    "value": "pt-br",
+    "domain": "web.telegram.org",
+    "path": "/",
+    "expires": -1,
+    "size": 12,
+    "httpOnly": false,
+    "secure": false,
+    "session": true,
+    "priority": "Medium",
+    "sameParty": false,
+    "sourceScheme": "NonSecure"
+  }
+]
