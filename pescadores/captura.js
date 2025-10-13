@@ -75,11 +75,6 @@ async function capturar() {
     { channel_name: 'Canal Exemplo 2', videos: ['http://exemplo.com/video2.mp4'] }
   ];
 
-  const linksExtraidos = [
-    { channel_name: 'Canal Exemplo 1', videos: ['http://exemplo.com/video1.mp4'] },
-    { channel_name: 'Canal Exemplo 2', videos: ['http://exemplo.com/video2.mp4'] }
-  ];
-
   // Garante que o diretório de dados exista antes de salvar o arquivo.
   await fs.mkdir('./data', { recursive: true });
 
