@@ -102,6 +102,40 @@ async function scrollChatToTop(page) {
   });
 }
 
+async function injectSession(page) {
+  const sessionJson = process.env.TELEGRAM_SESSION_JSON;
+  if (!sessionJson) {
+    console.log('Nenhuma sessão encontrada em TELEGRAM_SESSION_JSON, prosseguindo sem injeção.');
+    return;
+  }
+
+  try {
+    const session = JSON.parse(sessionJson);
+    const { localStorageData, cookies } = session;
+
+    // Injetar localStorage
+    if (localStorageData) {
+      await page.evaluate(data => {
+        for (const key in data) {
+          localStorage.setItem(key, data[key]);
+        }
+      }, localStorageData);
+      console.log('LocalStorage injetado com sucesso.');
+    }
+
+    // Injetar Cookies
+    if (cookies && cookies.length > 0) {
+      await page.setCookie(...cookies);
+      console.log('Cookies injetados com sucesso.');
+    }
+
+  } catch (error) {
+    console.error('Falha ao processar ou injetar a sessão JSON:', error);
+    // Decide se quer parar a execução ou continuar sem autenticação
+    // Por enquanto, vamos apenas avisar e continuar.
+  }
+}
+
 async function main() {
   await ensureOutputDir();
 
@@ -111,13 +145,30 @@ async function main() {
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
+      '--user-agent=Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36'
     ],
     // userDataDir: 'path/to/user/data' // opcional: persistir perfil Chromium
   });
   const page = (await browser.pages())[0];
+  await page.setViewport({ width: 390, height: 844, isMobile: true });
+
+  // Injeta a sessão ANTES de navegar para a página
+  await injectSession(page);
 
   // Navega diretamente para a URL do Telegram Web
   await page.goto('https://web.telegram.org/a/', { waitUntil: 'networkidle2', timeout: 120000 });
+
+  // Adiciona um tempo de espera para a interface carregar completamente
+  console.log('Aguardando a interface do Telegram carregar...');
+  try {
+    await page.waitForSelector(CHAT_LIST_ITEM_SELECTOR, { timeout: 45000 });
+    console.log('Interface do Telegram carregada.');
+  } catch (e) {
+    console.error('A interface do Telegram não carregou a tempo. Salvando screenshot de depuração...');
+    await page.screenshot({ path: path.join(OUTPUT_DIR, 'debug_screenshot_error.png') });
+    await fs.writeFile(path.join(OUTPUT_DIR, 'debug_page_error.html'), await page.content(), 'utf8');
+    throw new Error('Timeout esperando pelo seletor da lista de chats.');
+  }
 
   // 1) Captura cookies completos via CDP (HttpOnly incluído)
   try {
