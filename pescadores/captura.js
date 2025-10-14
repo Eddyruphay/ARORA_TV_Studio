@@ -1,118 +1,208 @@
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-puppeteer.use(StealthPlugin());
+// captura.js
+// Executar: node captura.js
+// Pré-requisitos: puppeteer-extra, puppeteer-extra-plugin-stealth, puppeteer
 
 const fs = require('fs').promises;
+const path = require('path');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 
-/**
- * Função principal para capturar URLs do Telegram Web.
- */
-async function capturar() {
-  console.log('🚀 Iniciando o processo de captura...');
+puppeteer.use(StealthPlugin());
 
-  // Lê a sessão do Telegram a partir da variável de ambiente (que virá do GitHub Secret).
-  const telegramSessionJson = process.env.TELEGRAM_SESSION_JSON;
-  if (!telegramSessionJson) {
-    console.error('❌ Erro: A variável de ambiente TELEGRAM_SESSION_JSON não está definida.');
-    console.error('Por favor, configure o secret no repositório do GitHub.');
-    process.exit(1); // Encerra o script com erro.
-  }
+const OUTPUT_DIR = path.resolve(__dirname, 'pescadores');
+const LINKS_FILE = path.join(OUTPUT_DIR, 'raw_links.json');
+const COOKIES_FILE = path.join(OUTPUT_DIR, 'debug_cookies_full.json');
 
-  // Analisa o JSON da sessão para obter os dados de login.
-  const sessionData = JSON.parse(telegramSessionJson);
-  console.log('🔑 Dados da sessão carregados da variável de ambiente.');
+// Ajuste os seletores abaixo conforme seu debug_page.html
+const CHAT_LIST_ITEM_SELECTOR = 'div.chat-list .ListItem.Chat'; // Seletores para os itens de chat na lista
+const CHAT_NAME_SELECTOR = '.ListItem.Chat .fullName';                 // Seletor para o nome do chat dentro do item de chat
+// ATENÇÃO: Os seletores abaixo para mensagens precisam ser verificados visualmente
+// quando um chat estiver aberto, pois o HTML fornecido não inclui a área de mensagens.
+const MESSAGE_CONTAINER_SELECTOR = '.bubbles-inner'; // Contêiner das mensagens (pode ser '.messages-layout .messages-pane')
+const MESSAGE_ITEM_SELECTOR = '.message';                 // Item de mensagem individual
+const MESSAGE_LINK_SELECTOR = 'a[href]';                  // Links dentro de cada mensagem
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox'
-    ]
-  });
-
-  const page = await browser.newPage();
-
-  // Emula um dispositivo móvel para a versão /a/ do Telegram Web
-  await page.setUserAgent('Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Mobile Safari/537.36');
-  await page.setViewport({ width: 360, height: 640, isMobile: true, hasTouch: true });
-
-  // Injeta o cookie de idioma antes de qualquer outra coisa.
-  await page.setCookie({ name: 'stel_ln', value: 'pt-br', domain: 'web.telegram.org' });
-
-  // --- MELHORIA DE LOG: Captura logs do console do navegador ---
-  page.on('console', msg => {
-    console.log('[LOG DO NAVEGADOR - CONSOLE]:', msg.text());
-  });
-  // --- MELHORIA DE LOG: Captura erros de página ---
-  page.on('pageerror', error => {
-    console.error('[LOG DO NAVEGADOR - ERRO DE PÁGINA]:', error.message);
-  });
-  // --- MELHORIA DE LOG: Captura requisições de rede falhas ---
-  page.on('requestfailed', request => {
-    console.error('[LOG DO NAVEGADOR - REQUISIÇÃO FALHA]:', request.url(), request.failure().errorText);
-  });
-  // ----------------------------------------------------------
-
-  console.log('🖥️  Navegador iniciado. Injetando sessão no localStorage...');
-
-  // Injeta os dados da sessão no localStorage ANTES de navegar para a página.
-  await page.evaluateOnNewDocument(session => {
-    for (const key in session) {
-      localStorage.setItem(key, session[key]);
-    }
-  }, sessionData);
-
-
-  console.log('🔗 Navegando para o Telegram Web...');
-  await page.goto('https://web.telegram.org/a/', {
-    waitUntil: 'networkidle2' // Espera a rede ficar ociosa.
-  });
-
-  console.log('⏳ Aguardando a página carregar completamente após o login (20 segundos)...');
-  await new Promise(resolve => setTimeout(resolve, 20000)); // Aumentado para 20s
-
-  console.log('✅ Navegação concluída. A página deve estar logada.');
-
-  // Tira um screenshot para depuração.
-  await page.screenshot({ path: 'debug_screenshot.png' });
-  console.log('📸 Screenshot de depuração salvo em debug_screenshot.png');
-
-  // --- MELHORIA DE LOG: Salva o HTML da página ---
-  const pageContent = await page.content();
-  await fs.writeFile('./debug_page.html', pageContent);
-  console.log('📄 HTML da página de depuração salvo em debug_page.html');
-
-  // --- MELHORIA DE LOG: Captura sessionStorage e cookies ---
-  const sessionStorageData = await page.evaluate(() => JSON.stringify(sessionStorage));
-  await fs.writeFile('./debug_sessionStorage.json', sessionStorageData);
-  console.log('📄 sessionStorage salvo em debug_sessionStorage.json');
-
-  const allCookies = await page.cookies();
-  await fs.writeFile('./debug_cookies.json', JSON.stringify(allCookies, null, 2));
-  console.log('📄 Cookies salvos em debug_cookies.json');
-  // ------------------------------------------------
-
-  // A lógica de scraping para extrair os links virá aqui.
-  // Por enquanto, vamos simular a extração.
-  const linksExtraidos = [
-    { channel_name: 'Canal Exemplo 1', videos: ['http://exemplo.com/video1.mp4'] },
-    { channel_name: 'Canal Exemplo 2', videos: ['http://exemplo.com/video2.mp4'] }
-  ];
-
-  // Garante que o diretório de dados exista antes de salvar o arquivo.
-  await fs.mkdir('./data', { recursive: true });
-
-  // Salva os links extraídos em um arquivo temporário.
-  await fs.writeFile('./data/raw_links.json', JSON.stringify(linksExtraidos, null, 2));
-  console.log('📝 Links brutos salvos em data/raw_links.json');
-
-
-  await browser.close();
-  console.log('🎉 Processo de captura finalizado com sucesso.');
+async function ensureOutputDir() {
+  try { await fs.mkdir(OUTPUT_DIR, { recursive: true }); } catch(e) {}
 }
 
-// Executa a função principal e captura quaisquer erros.
-capturar().catch(error => {
-  console.error('❌ Ocorreu um erro inesperado durante a captura:', error);
+async function saveJson(file, obj) {
+  await fs.writeFile(file, JSON.stringify(obj, null, 2), 'utf8');
+  console.log('Saved:', file);
+}
+
+async function captureAllCookies(page) {
+  // Usando CDP para incluir HttpOnly cookies
+  const client = await page.target().createCDPSession();
+  const { cookies } = await client.send('Network.getAllCookies');
+  await saveJson(COOKIES_FILE, cookies);
+  return cookies;
+}
+
+async function setCookiesViaCDP(page, cookies) {
+  const client = await page.target().createCDPSession();
+  for (const c of cookies) {
+    // Network.setCookie espera campos específicos; convertendo pra garantir
+    try {
+      await client.send('Network.setCookie', {
+        name: c.name,
+        value: c.value,
+        domain: c.domain,
+        path: c.path || '/',
+        secure: c.secure || false,
+        httpOnly: c.httpOnly || false,
+        sameSite: c.sameSite || 'Lax',
+        expires: c.expirationDate || (Math.floor(Date.now()/1000) + 60*60*24*365)
+      });
+    } catch (err) {
+      console.warn('Failed to set cookie:', c.name, err.message);
+    }
+  }
+  console.log('Attempted to set cookies via CDP');
+}
+
+async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function extractLinksFromChat(page) {
+  // retorna array de {href, text, elementContext}
+  return await page.evaluate((MESSAGE_ITEM_SELECTOR, MESSAGE_LINK_SELECTOR) => {
+    const out = [];
+    const messages = Array.from(document.querySelectorAll(MESSAGE_ITEM_SELECTOR));
+    const urlRegex = /https?:\[\/\/\S+/g;
+
+    for (const msg of messages) {
+      // 1) links diretos <a href>
+      const anchors = Array.from(msg.querySelectorAll(MESSAGE_LINK_SELECTOR));
+      for (const a of anchors) {
+        out.push({ href: a.href, text: a.innerText || a.href, source: 'anchor' });
+      }
+      // 2) links no texto
+      const t = msg.innerText || '';
+      const found = t.match(urlRegex);
+      if (found) {
+        for (const u of found) out.push({ href: u, text: t.trim().slice(0,200), source: 'text' });
+      }
+    }
+    return out;
+  }, MESSAGE_ITEM_SELECTOR, MESSAGE_LINK_SELECTOR);
+}
+
+async function scrollChatToTop(page) {
+  // rolagem incremental para carregar mensagens antigas
+  await page.evaluate(async () => {
+    const scroller = document.querySelector('.messages'); // ajuste se necessário
+    if (!scroller) return;
+    let previousScroll = -1;
+    for (let i=0; i<10; i++) { // limita tentativas
+      scroller.scrollTop = 0; // ir pro topo
+      await new Promise(r => setTimeout(r, 800 + Math.random()*500));
+      if (scroller.scrollTop === previousScroll) break;
+      previousScroll = scroller.scrollTop;
+    }
+  });
+}
+
+async function main() {
+  await ensureOutputDir();
+
+  const browser = await puppeteer.launch({
+    headless: true, // Rodar em modo headless para GitHub Actions
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+    ],
+    // userDataDir: 'path/to/user/data' // opcional: persistir perfil Chromium
+  });
+  const page = (await browser.pages())[0];
+
+  // Navega diretamente para a URL do Telegram Web
+  await page.goto('https://web.telegram.org/a/', { waitUntil: 'networkidle2', timeout: 120000 });
+
+  // 1) Captura cookies completos via CDP (HttpOnly incluído)
+  try {
+    await captureAllCookies(page);
+  } catch (err) {
+    console.warn('Erro ao capturar cookies via CDP:', err.message);
+  }
+
+  // 2) Extrair lista de chats
+  const chats = await page.$$eval(CHAT_LIST_ITEM_SELECTOR, (nodes, CHAT_NAME_SELECTOR) => {
+    return nodes.map(n => {
+      const nameNode = n.querySelector(CHAT_NAME_SELECTOR);
+      return {
+        title: nameNode ? nameNode.innerText.trim() : n.innerText.trim().slice(0,40),
+        // Podemos extrair um identificador se houver data-attr
+        id: n.getAttribute('data-peer') || n.getAttribute('data-chat-id') || null,
+      };
+    });
+  }, CHAT_NAME_SELECTOR);
+
+  console.log('Chats encontrados:', chats.length);
+
+  const results = [];
+  const chatElements = await page.$$(CHAT_LIST_ITEM_SELECTOR);
+
+  for (let i=0; i<chatElements.length; i++) {
+    try {
+      const el = chatElements[i];
+      const chatInfo = chats[i] || { title: `chat-${i}`, id: null };
+      console.log(`Abrindo chat ${i+1}/${chatElements.length}:`, chatInfo.title);
+
+      // Clicar no chat para abrir
+      await el.click();
+      await sleep(800 + Math.random()*700);
+
+      // rolar para carregar histórico (se necessário)
+      await scrollChatToTop(page);
+      await sleep(500 + Math.random()*500);
+
+      // Extrair links
+      const links = await extractLinksFromChat(page);
+      console.log(`Links extraídos no chat "${chatInfo.title}":`, links.length);
+
+      // adicionar metadados
+      for (const L of links) {
+        results.push({
+          chatTitle: chatInfo.title,
+          chatId: chatInfo.id,
+          href: L.href,
+          text: L.text,
+          source: L.source,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // pequena pausa "humana"
+      await sleep(400 + Math.random()*1000);
+
+    } catch (err) {
+      console.error('Erro ao processar chat index', i, err.message);
+    }
+  }
+
+  // Filtrar duplicados (por href)
+  const unique = [];
+  const seen = new Set();
+  for (const r of results) {
+    if (!r.href) continue;
+    if (seen.has(r.href)) continue;
+    seen.add(r.href);
+    unique.push(r);
+  }
+
+  await saveJson(LINKS_FILE, { generatedAt: new Date().toISOString(), links: unique });
+  console.log('Extração finalizada. Total único:', unique.length);
+
+  // Opcional: capturar cookies novamente após navegação
+  try {
+    await captureAllCookies(page);
+  } catch(e) {}
+
+  // await browser.close(); // opcional: mantenha aberto para inspeção
+}
+
+main().catch(err => {
+  console.error('Fatal error:', err);
   process.exit(1);
 });
