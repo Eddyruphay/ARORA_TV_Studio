@@ -9,7 +9,7 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 
 puppeteer.use(StealthPlugin());
 
-const OUTPUT_DIR = path.resolve(__dirname, 'pescadores');
+const OUTPUT_DIR = path.resolve(__dirname, 'data');
 const LINKS_FILE = path.join(OUTPUT_DIR, 'raw_links.json');
 const COOKIES_FILE = path.join(OUTPUT_DIR, 'debug_cookies_full.json');
 
@@ -158,10 +158,13 @@ async function main() {
   // Navega diretamente para a URL do Telegram Web
   await page.goto('https://web.telegram.org/a/', { waitUntil: 'networkidle2', timeout: 120000 });
 
+  console.log('Página carregada. Tirando screenshot inicial...');
+  await page.screenshot({ path: path.join(OUTPUT_DIR, 'debug_screenshot_initial.png') });
+
   // Adiciona um tempo de espera para a interface carregar completamente
   console.log('Aguardando a interface do Telegram carregar...');
   try {
-    await page.waitForSelector(CHAT_LIST_ITEM_SELECTOR, { timeout: 45000 });
+    await page.waitForSelector(CHAT_LIST_ITEM_SELECTOR, { timeout: 120000 });
     console.log('Interface do Telegram carregada.');
   } catch (e) {
     console.error('A interface do Telegram não carregou a tempo. Salvando screenshot de depuração...');
