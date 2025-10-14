@@ -28,40 +28,10 @@ jobs:
           TELEGRAM_SESSION_JSON: ${{ secrets.TELEGRAM_SESSION_JSON }}
         run: node captura.js
 
-      # - name: 🗂️ Executar Processador e Catalogador
-      #   working-directory: ./pescadores
-      #   run: node processador.js
+      - name: 📤 Fazer Upload de Artefatos de Depuração
+        if: always() # Executa sempre para garantir que tenhamos os logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-artifacts
+          path: pescadores/data/
 
-      - name: 🚀 Fazer commit do Catálogo de Conteúdo
-        if: always() # Executa sempre, mesmo que a etapa anterior falhe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config --global user.name 'ARORA Pescador IA'
-          git config --global user.email 'bot@arora.tv'
-          
-          echo "--- Git Status Antes do Add ---"
-          git status
-          
-          # Adiciona os arquivos de resultado e depuração (incluindo os de erro)
-          git add pescadores/data/raw_links.json pescadores/debug_*.png pescadores/debug_*.html pescadores/debug_*.json
-          
-          echo "--- Git Status Depois do Add ---"
-          git status
-          
-          echo "--- Git Diff Staged ---"
-          git diff --staged
-          
-          # Apenas comita se houver mudanças no repositório
-          if ! git diff --staged --quiet; then
-            # Adapta a mensagem de commit se a execução anterior falhou
-            if [[ ${{ steps.captura.outcome }} == 'failure' ]]; then
-              git commit -m "🔥 Falha na Captura: Commit de artefatos de depuração"
-            else
-              git commit -m "📚 Catálogo: Novo conteúdo capturado pelo Pescador Puppeteer"
-            fi
-            echo "--- Realizando Push... ---"
-            git push https://oauth2:$GITHUB_TOKEN@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
-          else
-            echo "Nenhuma mudança para commitar."
-          fi
