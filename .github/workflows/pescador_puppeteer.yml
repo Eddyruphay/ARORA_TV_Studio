@@ -22,6 +22,7 @@ jobs:
         run: npm install
 
       - name: 🎣 Executar Captura (Puppeteer)
+        id: captura # Adiciona um ID à etapa
         working-directory: ./pescadores
         env:
           TELEGRAM_SESSION_JSON: ${{ secrets.TELEGRAM_SESSION_JSON }}
@@ -32,6 +33,7 @@ jobs:
       #   run: node processador.js
 
       - name: 🚀 Fazer commit do Catálogo de Conteúdo
+        if: always() # Executa sempre, mesmo que a etapa anterior falhe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -41,8 +43,8 @@ jobs:
           echo "--- Git Status Antes do Add ---"
           git status
           
-          # Adiciona os arquivos de resultado e depuração
-          git add pescadores/data/raw_links.json pescadores/debug_screenshot.png pescadores/debug_page.html pescadores/debug_sessionStorage.json pescadores/debug_cookies.json pescadores/debug_page.html
+          # Adiciona os arquivos de resultado e depuração (incluindo os de erro)
+          git add pescadores/data/raw_links.json pescadores/debug_*.png pescadores/debug_*.html pescadores/debug_*.json
           
           echo "--- Git Status Depois do Add ---"
           git status
@@ -52,10 +54,14 @@ jobs:
           
           # Apenas comita se houver mudanças no repositório
           if ! git diff --staged --quiet; then
-            git commit -m "📚 Catálogo: Novo conteúdo capturado pelo Pescador Puppeteer"
+            # Adapta a mensagem de commit se a execução anterior falhou
+            if [[ ${{ steps.captura.outcome }} == 'failure' ]]; then
+              git commit -m "🔥 Falha na Captura: Commit de artefatos de depuração"
+            else
+              git commit -m "📚 Catálogo: Novo conteúdo capturado pelo Pescador Puppeteer"
+            fi
             echo "--- Realizando Push... ---"
-            # Usa github.ref_name para pegar o nome da branch dinamicamente (ex: main ou master)
             git push https://oauth2:$GITHUB_TOKEN@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
           else
-            echo "Nenhuma mudança no catálogo para commitar."
+            echo "Nenhuma mudança para commitar."
           fi
