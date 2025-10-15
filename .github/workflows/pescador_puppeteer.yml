@@ -1,37 +1,33 @@
-name: Pescador Puppeteer - Coleta de Conteúdo
+name: Pescador Puppeteer
 
 on:
-  workflow_dispatch: # Permite acionamento manual
+  workflow_dispatch:
 
 jobs:
-  collect-and-process:
-    permissions:
-      contents: write # Permissão necessária para fazer commit no repositório
+  run-puppeteer:
     runs-on: ubuntu-latest
     steps:
-      - name: ✅ Checkout do Repositório
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 🟢 Configurar Ambiente Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18' # Usando uma versão LTS estável
+          node-version: 18
 
-      - name: 📦 Instalar Dependências
-        working-directory: ./pescadores
-        run: npm install
-
-      - name: 🎣 Executar Captura (Puppeteer)
-        id: captura # Adiciona um ID à etapa
-        working-directory: ./pescadores
+      - name: Install dependencies
+        run: |
+          cd pescadores
+          npm ci
+      - name: Run captura script
+        run: |
+          cd pescadores
+          node captura.js
         env:
-          TELEGRAM_SESSION_JSON: ${{ secrets.TELEGRAM_SESSION_JSON }}
-        run: node captura.js
-
-      - name: 📤 Fazer Upload de Artefatos de Depuração
-        if: always() # Executa sempre para garantir que tenhamos os logs
+          # Se precisar expor VARS (ex: TELEGRAM cookies em JSON), adicione secrets aqui
+          # EXAMPLE_COOKIE: ${{ secrets.EXAMPLE_COOKIE }}
+      - name: Upload debug artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: debug-artifacts
-          path: pescadores/data/
-
+          name: pescadores-debug
+          path: pescadores/
