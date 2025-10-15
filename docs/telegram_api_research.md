@@ -26,26 +26,34 @@ A captura de cookies e sessionStorage via Puppeteer tem se mostrado ineficaz, re
 
 ## 2. Captura de Requisições de Rede (API Interna)
 
-### Progresso
+### **NOVA ESTRATÉGIA: Utilizando Bibliotecas MTProto!**
 
-A lógica de captura de rede no `captura.js` foi aprimorada para usar `page.on('response')` e filtrar requisições que se assemelham a chamadas da API do Telegram (URLs contendo `/apiid/` ou `/api/` no domínio `web.telegram.org`) e tipos de mídia (`.mp4`, `.m3u8`, etc.).
+Uma descoberta crucial da equipe colaboradora revelou que o Telegram Web utiliza o protocolo **MTProto** e que existem bibliotecas JavaScript maduras (`@mtproto/core`, `gram-js/gramjs`) que implementam esse protocolo.
 
-### Obstáculos Atuais
+**Isso muda drasticamente nossa abordagem:** Em vez de tentar "pescar" links da interface ou decifrar requisições de rede, vamos usar essas bibliotecas para interagir diretamente com a API do Telegram.
 
-Apesar dos aprimoramentos, o `network_log.json` ainda não está capturando as requisições da API do Telegram com seus payloads de forma abrangente. As entradas atuais são limitadas a recursos estáticos.
+### Plano de Ação Revisado:
 
-**Possíveis Causas:**
-*   O filtro de URL pode não ser abrangente o suficiente.
-*   A forma como o Telegram Web faz suas chamadas de API pode ser mais complexa (ex: WebSockets, Service Workers, ou um formato de URL diferente).
-*   Pode haver um problema na leitura do corpo da resposta para requisições da API.
+1.  **`captura.js` (Registrador de Sessão):**
+    *   Navegar para `web.telegram.org`.
+    *   Esperar o usuário fazer login (se necessário).
+    *   Executar código JavaScript na página (`page.evaluate`) para extrair todas as chaves relevantes do `localStorage` (especialmente as `_auth_key`).
+    *   **Encontrar `api_id` e `api_hash`:** Estes valores são essenciais e precisam ser encontrados no código-fonte JavaScript do Telegram Web (procurar por `api_id:` ou `api_hash:` nos arquivos `.js` carregados pela página).
+    *   Salvar todas essas informações em `pescadores/data/session.json`.
+2.  **`processador.js` (Cliente de API):**
+    *   Criar um novo script que irá ler o `session.json`.
+    *   Usar o `@mtproto/core` (ou `gram-js/gramjs`) com as chaves extraídas para fazer chamadas de API (ex: `messages.getHistory`, `upload.getFile`) para baixar o conteúdo.
 
-**Próximo Passo:** Realizar uma nova sessão de captura interativa com o `captura.js` aprimorado, com foco em gerar tráfego de API e observar o `network_log.json` resultante.
+### Obstáculos Anteriores (Superados pela Nova Estratégia):
 
-## 3. Próximos Passos Propostos
+*   A dificuldade em capturar requisições de rede com payloads completos e identificar a API interna diretamente da interface web é agora contornada pela utilização das bibliotecas MTProto.
+*   A lentidão e os problemas com o `git add .` foram resolvidos ao ignorar `node_modules/` e `pescadores/user_data/`.
 
-1.  **Executar nova sessão de captura:** Com o `captura.js` atualizado, realizar uma nova sessão de 15 minutos, focando em interações que gerem muitas chamadas de API (rolar histórico, abrir vídeos, pesquisar).
-2.  **Analisar `network_log.json`:** Após a captura, analisar cuidadosamente o `network_log.json` para identificar padrões de chamadas de API, URLs, métodos e payloads.
-3.  **Identificar o Objeto da API:** Com base nas requisições de rede, tentar identificar o objeto JavaScript global que o Telegram Web usa para fazer suas chamadas de API.
+## 3. Próximos Passos Imediatos
+
+1.  **Atualizar `docs/telegram_api_research.md`:** Incorporar esta nova estratégia e plano de ação. (Este passo está sendo executado agora).
+2.  **Refatorar `captura.js`:** Implementar a extração de `localStorage`, `api_id` e `api_hash` e salvá-los em `session.json`.
+3.  **Criar `processador.js`:** Desenvolver o script que usará a biblioteca MTProto para interagir com a API.
 
 ---
 **Data da Última Atualização:** 15 de Outubro de 2025
