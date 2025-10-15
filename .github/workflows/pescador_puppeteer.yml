@@ -19,15 +19,40 @@ jobs:
         run: |
           cd pescadores
           npm ci
+
+      - name: Decrypt Session
+        id: decrypt_session
+        run: |
+          # Decrypt the session file from secrets
+          # The output is a JSON string
+          DECRYPTED_JSON=$(echo "${{ secrets.TELEGRAM_SESSION_ENCRYPTED }}" | openssl enc -d -aes-256-gcm -base64 -A -K "${{ secrets.ENCRYPTION_KEY }}" -iv "${{ secrets.ENCRYPTION_IV }}")
+          
+          # Check if decryption was successful
+          if [ -z "$DECRYPTED_JSON" ]; then
+            echo "::error::Decryption failed. Result is empty."
+            exit 1
+          fi
+
+          # Make the decrypted JSON available to subsequent steps
+          echo "TELEGRAM_SESSION_JSON=$DECRYPTED_JSON" >> $GITHUB_ENV
+          echo "::add-mask::$DECRYPTED_JSON"
+          echo "✅ Session decrypted and environment variable is set."
+        env:
+          TELEGRAM_SESSION_ENCRYPTED: ${{ secrets.TELEGRAM_SESSION_ENCRYPTED }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          ENCRYPTION_IV: ${{ secrets.ENCRYPTION_IV }}
+
       - name: Run captura script
         run: |
           cd pescadores
           node captura.js
         env:
-          # Se precisar expor VARS (ex: TELEGRAM cookies em JSON), adicione secrets aqui
-          # EXAMPLE_COOKIE: ${{ secrets.EXAMPLE_COOKIE }}
+          # The TELEGRAM_SESSION_JSON is now available from the previous step
+          TELEGRAM_SESSION_JSON: ${{ env.TELEGRAM_SESSION_JSON }}
+
       - name: Upload debug artifacts
+        if: always() # Always run this step to get logs even if the script fails
         uses: actions/upload-artifact@v4
         with:
-          name: pescadores-debug
-          path: pescadores/
+          name: pescadores-debug-artifacts
+          path: pescadores/data/
