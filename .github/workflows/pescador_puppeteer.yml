@@ -38,5 +38,7 @@ jobs:
         env:
           TELEGRAM_SESSION_JSON: ${{ secrets.TELETHON_STRING_SESSION }}
           TELEGRAM_TARGET_CHAT: ${{ secrets.TELEGRAM_TARGET_CHAT || 'me' }} # Default to 'me' if secret not set
+          TELEGRAM_MESSAGE_LIMIT: ${{ secrets.TELEGRAM_MESSAGE_LIMIT || 10 }} # Default to 10 if secret not set
+          TELEGRAM_DOWNLOAD_MEDIA: ${{ secrets.TELEGRAM_DOWNLOAD_MEDIA || 'false' }} # Default to false if secret not set
 
       - name: Upload debug artifacts

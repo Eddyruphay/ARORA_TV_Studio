@@ -67,28 +67,39 @@ async def main():
 
         print("Client authorized successfully!")
 
-        # --- Your data collection logic goes here ---
-        # Example: Get information about yourself
-        me = await client.get_me()
-        print(f"Logged in as: {me.first_name} {me.last_name} (@{me.username})")
-
-        # --- Data Collection: Fetch messages from a specific chat ---
-        # IMPORTANT: Replace 'target_chat_username_or_id' with the actual username (e.g., 'telegram')
-        # or ID (e.g., -100123456789) of the chat you want to collect from.
-        # For private chats, you might need to use the chat ID.
+        # --- Data Collection Configuration ---
         TARGET_CHAT = os.getenv('TELEGRAM_TARGET_CHAT', 'me') # Default to 'me' for testing
+        MESSAGE_LIMIT = int(os.getenv('TELEGRAM_MESSAGE_LIMIT', 10)) # Default to 10 messages
+        DOWNLOAD_MEDIA = os.getenv('TELEGRAM_DOWNLOAD_MEDIA', 'false').lower() == 'true'
 
-        print(f"Fetching messages from chat: {TARGET_CHAT}")
+        print(f"Fetching {MESSAGE_LIMIT} messages from chat: {TARGET_CHAT}")
+        print(f"Media download enabled: {DOWNLOAD_MEDIA}")
+
+        collected_messages = []
         try:
             entity = await client.get_entity(TARGET_CHAT)
-            messages = await client.get_messages(entity, limit=10) # Fetch last 10 messages
-            for msg in messages:
+            async for msg in client.iter_messages(entity, limit=MESSAGE_LIMIT):
+                message_info = {
+                    'id': msg.id,
+                    'date': str(msg.date),
+                    'sender_id': msg.sender_id,
+                    'text': msg.text,
+                    'media': None
+                }
+
+                if msg.media and DOWNLOAD_MEDIA:
+                    print(f"    Downloading media from message {msg.id}...")
+                    media_path = await client.download_media(msg, file=f"./src/ociTG_engine/data/{msg.id}")
+                    message_info['media'] = media_path
+                
+                collected_messages.append(message_info)
                 print(f"  Message ID: {msg.id}, Date: {msg.date}, Sender: {msg.sender_id}, Text: {msg.text[:100]}...")
-                # You can add more logic here to process messages, download media, etc.
-                # Example: Download media
-                # if msg.media:
-                #     print(f"    Downloading media from message {msg.id}...")
-                #     await client.download_media(msg, file=f"./src/ociTG_engine/data/{msg.id}")
+
+            # Save collected messages to a JSON file
+            output_file = f"./src/ociTG_engine/data/{TARGET_CHAT}_messages.json"
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(collected_messages, f, ensure_ascii=False, indent=4)
+            print(f"✅ Collected {len(collected_messages)} messages and saved to {output_file}")
 
         except Exception as e:
             print(f"Error fetching messages from {TARGET_CHAT}: {e}")
