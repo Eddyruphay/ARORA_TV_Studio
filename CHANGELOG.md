@@ -3,8 +3,8 @@
 ## [Versão 1.0.0] - 2025-10-15
 
 ### Adicionado
-- **OCI Telegram Engine (ociTG_engine) v1.0 (Planejado):** Implementação com Telethon para coleta de dados para o OCI. (Anteriormente 'Spectra Engine')
-- **OCI Gateway v1.0 (Planejado):** Proxy de egresso para fornecer IP estável para as operações do OCI.
+- **Primeira Execução Bem-Sucedida do `ociTG worker`:** O workflow `ociTG worker` foi executado com sucesso, confirmando a funcionalidade do OCI Gateway como proxy, a integração do Telethon e a correta configuração dos segredos. Isso valida a arquitetura "Serverless+ VPN Lógica" para coleta de dados.
+- **Aprimoramento do `ociTG_engine`:** O script `ociTG_engine.py` foi aprimorado com a funcionalidade básica de coleta de mensagens de um chat Telegram especificado, incluindo um placeholder para o chat alvo (`TELEGRAM_TARGET_CHAT`) e lógica para buscar as últimas 10 mensagens. Preparação para download de mídia também foi adicionada (comentada).
 - **Renomeação do Workflow:** O workflow do GitHub Actions foi renomeado para `ociTG worker`, alinhando-se à nomenclatura do ARORA OCI e à sua função como um worker dedicado ao Telegram.
 - **CHANGELOG.md:** Criação do diário de bordo do projeto para rastrear mudanças, aprendizados e decisões arquiteturais.
 

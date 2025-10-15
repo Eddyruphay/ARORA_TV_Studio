@@ -31,18 +31,12 @@ jobs:
           echo "Verifying outbound IP using the OCI Gateway..."
           curl -s ifconfig.me
 
-      - name: Run Spectra Engine
+      - name: Run OCI Telegram Engine
         run: |
-          # Placeholder for our Python Telethon script
-          # This script will be created in the next step
-          echo "Running Spectra Engine (Python Telethon script)..."
+          echo "Running OCI Telegram Engine (Python Telethon script)..."
           python src/ociTG_engine/ociTG_engine.py
         env:
           TELEGRAM_SESSION_JSON: ${{ secrets.TELETHON_STRING_SESSION }}
+          TELEGRAM_TARGET_CHAT: ${{ secrets.TELEGRAM_TARGET_CHAT || 'me' }} # Default to 'me' if secret not set
 
       - name: Upload debug artifacts
-        if: always() # Always run this step to get logs even if the script fails
-        uses: actions/upload-artifact@v4
-        with:
-          name: arora-oci-spectra-debug-artifacts
-          path: src/ociTG_engine/data/

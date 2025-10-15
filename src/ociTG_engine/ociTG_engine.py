@@ -72,10 +72,27 @@ async def main():
         me = await client.get_me()
         print(f"Logged in as: {me.first_name} {me.last_name} (@{me.username})")
 
-        # Example: Fetch messages from a specific channel (replace 'channel_username' or 'channel_id')
-        # channel_entity = await client.get_entity('channel_username_or_id')
-        # async for message in client.iter_messages(channel_entity, limit=10):
-        #     print(message.text)
+        # --- Data Collection: Fetch messages from a specific chat ---
+        # IMPORTANT: Replace 'target_chat_username_or_id' with the actual username (e.g., 'telegram')
+        # or ID (e.g., -100123456789) of the chat you want to collect from.
+        # For private chats, you might need to use the chat ID.
+        TARGET_CHAT = os.getenv('TELEGRAM_TARGET_CHAT', 'me') # Default to 'me' for testing
+
+        print(f"Fetching messages from chat: {TARGET_CHAT}")
+        try:
+            entity = await client.get_entity(TARGET_CHAT)
+            messages = await client.get_messages(entity, limit=10) # Fetch last 10 messages
+            for msg in messages:
+                print(f"  Message ID: {msg.id}, Date: {msg.date}, Sender: {msg.sender_id}, Text: {msg.text[:100]}...")
+                # You can add more logic here to process messages, download media, etc.
+                # Example: Download media
+                # if msg.media:
+                #     print(f"    Downloading media from message {msg.id}...")
+                #     await client.download_media(msg, file=f"./src/ociTG_engine/data/{msg.id}")
+
+        except Exception as e:
+            print(f"Error fetching messages from {TARGET_CHAT}: {e}")
+
         # --- End of data collection logic ---
 
     except Exception as e:
