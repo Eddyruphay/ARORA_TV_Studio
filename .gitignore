@@ -1,2 +1,4 @@
 .vercel
 *.session
+node_modules/
+pescadores/user_data/

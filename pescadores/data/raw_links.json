@@ -1,14 +1,4 @@
-[
-  {
-    "channel_name": "Canal Exemplo 1",
-    "videos": [
-      "http://exemplo.com/video1.mp4"
-    ]
-  },
-  {
-    "channel_name": "Canal Exemplo 2",
-    "videos": [
-      "http://exemplo.com/video2.mp4"
-    ]
-  }
-]
+{
+  "generatedAt": "2025-10-14T23:45:41.364Z",
+  "links": []
+}

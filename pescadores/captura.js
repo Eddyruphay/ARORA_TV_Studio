@@ -1,262 +1,142 @@
-// captura.js
-// Executar: node captura.js
-// Pré-requisitos: puppeteer-extra, puppeteer-extra-plugin-stealth, puppeteer
-
+const puppeteer = require('puppeteer');
 const fs = require('fs').promises;
 const path = require('path');
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 
-puppeteer.use(StealthPlugin());
+const dataDir = path.join(__dirname, 'data');
+const cookiesPath = path.join(dataDir, 'debug_cookies.json');
+const localStoragePath = path.join(dataDir, 'debug_localStorage.json');
+const sessionStoragePath = path.join(dataDir, 'debug_sessionStorage.json');
+const networkLogPath = path.join(dataDir, 'network_log.json');
 
-const OUTPUT_DIR = path.resolve(__dirname, 'data');
-const LINKS_FILE = path.join(OUTPUT_DIR, 'raw_links.json');
-const COOKIES_FILE = path.join(OUTPUT_DIR, 'debug_cookies_full.json');
+async function run() {
+    console.log('Navegando para o Telegram Web...');
 
-// Ajuste os seletores abaixo conforme seu debug_page.html
-const CHAT_LIST_ITEM_SELECTOR = 'div.chat-list .ListItem.Chat'; // Seletores para os itens de chat na lista
-const CHAT_NAME_SELECTOR = '.ListItem.Chat .fullName';                 // Seletor para o nome do chat dentro do item de chat
-// ATENÇÃO: Os seletores abaixo para mensagens precisam ser verificados visualmente
-// quando um chat estiver aberto, pois o HTML fornecido não inclui a área de mensagens.
-const MESSAGE_CONTAINER_SELECTOR = '.bubbles-inner'; // Contêiner das mensagens (pode ser '.messages-layout .messages-pane')
-const MESSAGE_ITEM_SELECTOR = '.message';                 // Item de mensagem individual
-const MESSAGE_LINK_SELECTOR = 'a[href]';                  // Links dentro de cada mensagem
-
-async function ensureOutputDir() {
-  try { await fs.mkdir(OUTPUT_DIR, { recursive: true }); } catch(e) {}
-}
-
-async function saveJson(file, obj) {
-  await fs.writeFile(file, JSON.stringify(obj, null, 2), 'utf8');
-  console.log('Saved:', file);
-}
-
-async function captureAllCookies(page) {
-  // Usando CDP para incluir HttpOnly cookies
-  const client = await page.target().createCDPSession();
-  const { cookies } = await client.send('Network.getAllCookies');
-  await saveJson(COOKIES_FILE, cookies);
-  return cookies;
-}
-
-async function setCookiesViaCDP(page, cookies) {
-  const client = await page.target().createCDPSession();
-  for (const c of cookies) {
-    // Network.setCookie espera campos específicos; convertendo pra garantir
-    try {
-      await client.send('Network.setCookie', {
-        name: c.name,
-        value: c.value,
-        domain: c.domain,
-        path: c.path || '/',
-        secure: c.secure || false,
-        httpOnly: c.httpOnly || false,
-        sameSite: c.sameSite || 'Lax',
-        expires: c.expirationDate || (Math.floor(Date.now()/1000) + 60*60*24*365)
-      });
-    } catch (err) {
-      console.warn('Failed to set cookie:', c.name, err.message);
-    }
-  }
-  console.log('Attempted to set cookies via CDP');
-}
-
-async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-async function extractLinksFromChat(page) {
-  // retorna array de {href, text, elementContext}
-  return await page.evaluate((MESSAGE_ITEM_SELECTOR, MESSAGE_LINK_SELECTOR) => {
-    const out = [];
-    const messages = Array.from(document.querySelectorAll(MESSAGE_ITEM_SELECTOR));
-    const urlRegex = /https?:\[\/\/\S+/g;
-
-    for (const msg of messages) {
-      // 1) links diretos <a href>
-      const anchors = Array.from(msg.querySelectorAll(MESSAGE_LINK_SELECTOR));
-      for (const a of anchors) {
-        out.push({ href: a.href, text: a.innerText || a.href, source: 'anchor' });
-      }
-      // 2) links no texto
-      const t = msg.innerText || '';
-      const found = t.match(urlRegex);
-      if (found) {
-        for (const u of found) out.push({ href: u, text: t.trim().slice(0,200), source: 'text' });
-      }
-    }
-    return out;
-  }, MESSAGE_ITEM_SELECTOR, MESSAGE_LINK_SELECTOR);
-}
-
-async function scrollChatToTop(page) {
-  // rolagem incremental para carregar mensagens antigas
-  await page.evaluate(async () => {
-    const scroller = document.querySelector('.messages'); // ajuste se necessário
-    if (!scroller) return;
-    let previousScroll = -1;
-    for (let i=0; i<10; i++) { // limita tentativas
-      scroller.scrollTop = 0; // ir pro topo
-      await new Promise(r => setTimeout(r, 800 + Math.random()*500));
-      if (scroller.scrollTop === previousScroll) break;
-      previousScroll = scroller.scrollTop;
-    }
-  });
-}
-
-async function injectSession(page) {
-  const sessionJson = process.env.TELEGRAM_SESSION_JSON;
-  if (!sessionJson) {
-    console.log('Nenhuma sessão encontrada em TELEGRAM_SESSION_JSON, prosseguindo sem injeção.');
-    return;
-  }
-
-  try {
-    const session = JSON.parse(sessionJson);
-    const { localStorageData, cookies } = session;
-
-    // Injetar localStorage
-    if (localStorageData) {
-      await page.evaluate(data => {
-        for (const key in data) {
-          localStorage.setItem(key, data[key]);
-        }
-      }, localStorageData);
-      console.log('LocalStorage injetado com sucesso.');
-    }
-
-    // Injetar Cookies
-    if (cookies && cookies.length > 0) {
-      await page.setCookie(...cookies);
-      console.log('Cookies injetados com sucesso.');
-    }
-
-  } catch (error) {
-    console.error('Falha ao processar ou injetar a sessão JSON:', error);
-    // Decide se quer parar a execução ou continuar sem autenticação
-    // Por enquanto, vamos apenas avisar e continuar.
-  }
-}
-
-async function main() {
-  await ensureOutputDir();
-
-  const browser = await puppeteer.launch({
-    headless: true, // Rodar em modo headless para GitHub Actions
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--user-agent=Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36'
-    ],
-    // userDataDir: 'path/to/user/data' // opcional: persistir perfil Chromium
-  });
-  const page = (await browser.pages())[0];
-  await page.setViewport({ width: 390, height: 844, isMobile: true });
-
-  // Injeta a sessão ANTES de navegar para a página
-  await injectSession(page);
-
-  // Navega diretamente para a URL do Telegram Web
-  await page.goto('https://web.telegram.org/a/', { waitUntil: 'networkidle2', timeout: 120000 });
-
-  console.log('Página carregada. Tirando screenshot inicial...');
-  await page.screenshot({ path: path.join(OUTPUT_DIR, 'debug_screenshot_initial.png') });
-
-  // Adiciona um tempo de espera para a interface carregar completamente
-  console.log('Aguardando a interface do Telegram carregar...');
-  try {
-    await page.waitForSelector(CHAT_LIST_ITEM_SELECTOR, { timeout: 120000 });
-    console.log('Interface do Telegram carregada.');
-  } catch (e) {
-    console.error('A interface do Telegram não carregou a tempo. Salvando screenshot de depuração...');
-    await page.screenshot({ path: path.join(OUTPUT_DIR, 'debug_screenshot_error.png') });
-    await fs.writeFile(path.join(OUTPUT_DIR, 'debug_page_error.html'), await page.content(), 'utf8');
-    throw new Error('Timeout esperando pelo seletor da lista de chats.');
-  }
-
-  // 1) Captura cookies completos via CDP (HttpOnly incluído)
-  try {
-    await captureAllCookies(page);
-  } catch (err) {
-    console.warn('Erro ao capturar cookies via CDP:', err.message);
-  }
-
-  // 2) Extrair lista de chats
-  const chats = await page.$$eval(CHAT_LIST_ITEM_SELECTOR, (nodes, CHAT_NAME_SELECTOR) => {
-    return nodes.map(n => {
-      const nameNode = n.querySelector(CHAT_NAME_SELECTOR);
-      return {
-        title: nameNode ? nameNode.innerText.trim() : n.innerText.trim().slice(0,40),
-        // Podemos extrair um identificador se houver data-attr
-        id: n.getAttribute('data-peer') || n.getAttribute('data-chat-id') || null,
-      };
+    const browser = await puppeteer.launch({
+        headless: false,
+        userDataDir: './user_data',
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
-  }, CHAT_NAME_SELECTOR);
+    const page = await browser.newPage();
 
-  console.log('Chats encontrados:', chats.length);
+    // Habilitar interceptação de requisições
+    await page.setRequestInterception(true);
 
-  const results = [];
-  const chatElements = await page.$$(CHAT_LIST_ITEM_SELECTOR);
+    const networkLog = [];
 
-  for (let i=0; i<chatElements.length; i++) {
+    // Capturar requisições
+    page.on('request', request => {
+        // Continuar todas as requisições para não bloquear a navegação
+        request.continue();
+    });
+
+    // Capturar respostas
+    page.on('response', async response => {
+        const url = response.url();
+        const request = response.request();
+        const resourceType = request.resourceType();
+        const method = request.method();
+        const headers = request.headers();
+        const postData = request.postData();
+        const status = response.status();
+
+        // Filtrar por URLs da API do Telegram e tipos de mídia
+        const isTelegramApi = url.includes('web.telegram.org') && (url.includes('/apiid/') || url.includes('/api/'));
+        const isMedia = url.match(/\.(mp4|m3u8|ts|webm|ogg|mov|avi|flv|wmv)(\?.*)?$/i);
+
+        if (isTelegramApi || isMedia) {
+            let responseBody = null;
+            try {
+                if (response.ok()) {
+                    const contentType = response.headers()['content-type'] || '';
+                    if (contentType.includes('application/json')) {
+                        responseBody = await response.json();
+                    } else if (contentType.includes('text/')) {
+                        responseBody = await response.text();
+                    } else {
+                        // Para outros tipos, apenas registrar que o corpo não foi lido
+                        responseBody = `(Corpo não lido para Content-Type: ${contentType})`;
+                    }
+                } else {
+                    responseBody = `(Erro na resposta: ${status})`;
+                }
+            } catch (error) {
+                responseBody = `(Erro ao ler corpo da resposta: ${error.message})`;
+            }
+
+            networkLog.push({
+                url,
+                resourceType,
+                method,
+                headers,
+                postData,
+                responseStatus: status,
+                responseBody
+            });
+        }
+    });
+
+    await page.goto('https://web.telegram.org/k/', { waitUntil: 'networkidle2' });
+
+    console.log('Aguardando interação do usuário para login e navegação...');
+    console.log('Por favor, faça login no Telegram Web e navegue pelos canais e vídeos.');
+    console.log('O navegador permanecerá aberto por 15 minutos para sua interação.');
+    console.log('Após sua interação, o script tentará salvar os dados da sessão e da rede.');
+
+    await new Promise(resolve => setTimeout(resolve, 900000)); // 15 minutos
+
+    console.log('Tempo de interação encerrado. Salvando dados da sessão e da rede...');
+
+    // Capturar cookies
     try {
-      const el = chatElements[i];
-      const chatInfo = chats[i] || { title: `chat-${i}`, id: null };
-      console.log(`Abrindo chat ${i+1}/${chatElements.length}:`, chatInfo.title);
-
-      // Clicar no chat para abrir
-      await el.click();
-      await sleep(800 + Math.random()*700);
-
-      // rolar para carregar histórico (se necessário)
-      await scrollChatToTop(page);
-      await sleep(500 + Math.random()*500);
-
-      // Extrair links
-      const links = await extractLinksFromChat(page);
-      console.log(`Links extraídos no chat "${chatInfo.title}":`, links.length);
-
-      // adicionar metadados
-      for (const L of links) {
-        results.push({
-          chatTitle: chatInfo.title,
-          chatId: chatInfo.id,
-          href: L.href,
-          text: L.text,
-          source: L.source,
-          timestamp: new Date().toISOString()
-        });
-      }
-
-      // pequena pausa "humana"
-      await sleep(400 + Math.random()*1000);
-
-    } catch (err) {
-      console.error('Erro ao processar chat index', i, err.message);
+        const cookies = await page.cookies();
+        await fs.writeFile(cookiesPath, JSON.stringify(cookies, null, 2));
+        console.log('Cookies salvos em debug_cookies.json');
+    } catch (error) {
+        console.error(`Erro ao salvar cookies: ${error.message}`);
     }
-  }
 
-  // Filtrar duplicados (por href)
-  const unique = [];
-  const seen = new Set();
-  for (const r of results) {
-    if (!r.href) continue;
-    if (seen.has(r.href)) continue;
-    seen.add(r.href);
-    unique.push(r);
-  }
+    // Capturar localStorage
+    try {
+        const localStorageData = await page.evaluate(() => {
+            let json = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                json[key] = localStorage.getItem(key);
+            }
+            return json;
+        });
+        await fs.writeFile(localStoragePath, JSON.stringify(localStorageData, null, 2));
+        console.log('Local Storage salvo em debug_localStorage.json');
+    } catch (error) {
+        console.error(`Erro ao salvar Local Storage: ${error.message}`);
+    }
 
-  await saveJson(LINKS_FILE, { generatedAt: new Date().toISOString(), links: unique });
-  console.log('Extração finalizada. Total único:', unique.length);
+    // Capturar sessionStorage
+    try {
+        const sessionStorageData = await page.evaluate(() => {
+            let json = {};
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                json[key] = sessionStorage.getItem(key);
+            }
+            return json;
+        });
+        await fs.writeFile(sessionStoragePath, JSON.stringify(sessionStorageData, null, 2));
+        console.log('Session Storage salvo em debug_sessionStorage.json');
+    } catch (error) {
+        console.error(`Erro ao salvar Session Storage: ${error.message}`);
+    }
 
-  // Opcional: capturar cookies novamente após navegação
-  try {
-    await captureAllCookies(page);
-  } catch(e) {}
+    // Salvar log de rede
+    try {
+        await fs.writeFile(networkLogPath, JSON.stringify(networkLog, null, 2));
+        console.log('Log de rede salvo em network_log.json');
+    } catch (error) {
+        console.error(`Erro ao salvar log de rede: ${error.message}`);
+    }
 
-  // await browser.close(); // opcional: mantenha aberto para inspeção
+    await browser.close();
+    console.log('Navegador fechado. Captura concluída.');
 }
 
-main().catch(err => {
-  console.error('Fatal error:', err);
-  process.exit(1);
-});
+run().catch(console.error);

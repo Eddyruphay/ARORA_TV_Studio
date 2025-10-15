@@ -1,0 +1,53 @@
+[
+  {
+    "url": "https://web.telegram.org/k/",
+    "resourceType": "document",
+    "method": "GET",
+    "headers": {
+      "accept-language": "en-US",
+      "upgrade-insecure-requests": "1",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Chromium\";v=\"127\", \"Not)A;Brand\";v=\"99\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
+    },
+    "postData": null,
+    "responseStatus": "N/A",
+    "responseBody": null
+  },
+  {
+    "url": "https://web.telegram.org/k/assets/img/spoiler_vertex.glsl",
+    "resourceType": "fetch",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua": "\"Chromium\";v=\"127\", \"Not)A;Brand\";v=\"99\"",
+      "referer": "https://web.telegram.org/k/",
+      "accept-language": "en-US",
+      "sec-ch-ua-mobile": "?0",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "accept": "*/*"
+    },
+    "postData": null,
+    "responseStatus": "N/A",
+    "responseBody": null
+  },
+  {
+    "url": "https://web.telegram.org/k/assets/img/spoiler_fragment.glsl",
+    "resourceType": "fetch",
+    "method": "GET",
+    "headers": {
+      "sec-ch-ua": "\"Chromium\";v=\"127\", \"Not)A;Brand\";v=\"99\"",
+      "referer": "https://web.telegram.org/k/",
+      "accept-language": "en-US",
+      "sec-ch-ua-mobile": "?0",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+      "sec-ch-ua-platform": "\"Windows\"",
+      "accept": "*/*"
+    },
+    "postData": null,
+    "responseStatus": "N/A",
+    "responseBody": null
+  }
+]
