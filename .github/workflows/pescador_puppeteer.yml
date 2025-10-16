@@ -36,6 +36,8 @@ jobs:
           echo "Running OCI Telegram Engine (Python Telethon script)..."
           python src/ociTG_engine/ociTG_engine.py
         env:
+          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
           TELEGRAM_SESSION_JSON: ${{ secrets.TELETHON_STRING_SESSION }}
           TELEGRAM_TARGET_CHAT: ${{ secrets.TELEGRAM_TARGET_CHAT || 'me' }} # Default to 'me' if secret not set
           TELEGRAM_MESSAGE_LIMIT: ${{ secrets.TELEGRAM_MESSAGE_LIMIT || 10 }} # Default to 10 if secret not set
