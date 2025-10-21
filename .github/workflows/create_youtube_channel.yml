@@ -1,0 +1,42 @@
+name: Create YouTube Brand Channel
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel_name:
+        description: 'The name for the new YouTube Brand Channel'
+        required: true
+        default: 'TV ARORACONTINUA'
+
+jobs:
+  create-channel:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Puppeteer dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgbm-dev libnss3 libxss1 libasound2 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdbus-1-3 libgdk-pixbuf2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libx11-xcb1 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libxshmfence1
+
+      - name: Install Node.js dependencies
+        working-directory: ./youtube_automation
+        run: npm i puppeteer
+
+      - name: Run Puppeteer script
+        working-directory: ./youtube_automation
+        env:
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+          CHANNEL_NAME: ${{ github.event.inputs.channel_name }}
+        run: node create_channel.js
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: youtube-channel-creation-screenshot
+          path: ./youtube_automation/*.png
