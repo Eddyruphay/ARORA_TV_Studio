@@ -36,7 +36,7 @@ jobs:
         run: node create_channel.js
 
       - name: Upload screenshot artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: youtube-channel-creation-screenshot
           path: ./youtube_automation/*.png
