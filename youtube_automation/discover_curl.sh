@@ -13,7 +13,7 @@ echo "Discovered main links saved to discovered_main_links.txt"
 
 # Optional: Extract specific tag links as an example
 curl -s "${BASE_URL}/tags/" \
-  | grep -Eo 'href="/tags/[^/][^"]*"' \
+  | grep -Eo 'href="(/tags/[^"]+)"' \
   | sed -E 's/href="(.*?)"/\1/' \
   | sort -u \
   > discovered_tags.txt
