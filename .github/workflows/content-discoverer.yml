@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run Curl Discovery Script
-        run: bash youtube_automation/discover_curl.sh
+        run: bash discover_curl.sh
         working-directory: ./youtube_automation
 
       - name: Upload Discovered Links as Artifact
