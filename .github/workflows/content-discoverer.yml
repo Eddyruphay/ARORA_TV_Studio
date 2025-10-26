@@ -1,0 +1,23 @@
+
+name: Content Discoverer
+
+on:
+  workflow_dispatch:
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Run Curl Discovery Script
+        run: bash youtube_automation/discover_curl.sh
+        working-directory: ./youtube_automation
+
+      - name: Upload Discovered Links as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: discovered-links
+          path: ./youtube_automation/*.txt
