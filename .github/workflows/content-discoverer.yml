@@ -20,5 +20,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: discovered-links
-          path: ./youtube_automation/*.txt
-          path: ./youtube_automation/raw_tags_page.html
+          path:
+            - ./youtube_automation/*.txt
+            - ./youtube_automation/raw_tags_page.html
