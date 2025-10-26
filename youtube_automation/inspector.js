@@ -15,7 +15,7 @@ async function inspectNetwork() {
 
     const page = await browser.newPage();
 
-    const apiRequests = new Set<string>();
+    const apiRequests = new Set();
     page.on('request', (request) => {
       const url = request.url();
       if (request.resourceType() === 'xhr' || url.includes('/api/')) {
