@@ -1,12 +1,7 @@
-name: Create YouTube Brand Channel
+name: Run Inspector
 
 on:
   workflow_dispatch:
-    inputs:
-      channel_name:
-        description: 'The name for the new YouTube Brand Channel'
-        required: true
-        default: 'TV ARORACONTINUA'
 
 jobs:
   create-channel:
@@ -30,10 +25,7 @@ jobs:
 
       - name: Run Puppeteer script
         working-directory: ./youtube_automation
-        env:
-          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
-          CHANNEL_NAME: ${{ github.event.inputs.channel_name }}
-        run: node create_channel.js
+        run: node inspector.js
 
       - name: Upload screenshot artifact
         uses: actions/upload-artifact@v4
